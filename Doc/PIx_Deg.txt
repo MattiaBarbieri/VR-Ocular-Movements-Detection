@@ -1,0 +1,21 @@
+
+                                                        CONVERSIONE PIXELS - DEGREES IN UNITY 
+
+K = 0.056250;
+
+Pixels * K = Degrees;
+Degrees / K = Pixels
+
+
+
+
+                                                        ESEMPIO TRATTO DA "SaccadesTask.txt". 
+
+xL_pix = 673,2283 e xL_deg = 37,86909
+673.2283 * 0.056250 = 37.869091875
+da deg a pix 37.86909 / 0.056250 = 673.2282666666666
+
+
+
+
+

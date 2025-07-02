@@ -1,0 +1,16 @@
+
+                                                        CONVERSIONE PIXELS - DEGREES IN UNITY 
+
+In lettreatura la soglia per distinuere saccadi e microsaccadi è di 1 DEGREE.
+
+Soglia in pixels (per ReMODNaV): 
+	1 / 0.056250 = 18 pixels.
+
+
+
+             
+
+
+
+
+

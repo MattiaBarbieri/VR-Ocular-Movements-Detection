@@ -1,0 +1,7 @@
+PROMT COMANDI
+
+pip install remodnav
+
+cd C:\Users\mbarbieri\PycharmProjects\RealterAnalysis 
+
+C:\Users\mbarbieri\PycharmProjects\RealterAnalysis\venv\Scripts\activate
