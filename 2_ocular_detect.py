@@ -1,191 +1,157 @@
-#!/usr/bin/python3
 import math
 import sys
 import statistics
 import numpy as np
 
-K = 0.068055
-sacc_threshold = 1/K # 1 degree
-
-
-macro_sacc_count = 0; macro_sacc_ampl = []; macro_sacc_ampl_deg = []; macro_sacc_duration = []; macro_sacc_peakvel = []; macro_sacc_medvel = [];  macro_sacc_avgvel = []; macro_sacc_rawamp = []
-micro_sacc_count = 0; micro_sacc_ampl = []; micro_sacc_duration = []; micro_sacc_peakvel = []; micro_sacc_medvel = []; micro_sacc_avgvel = []
-purs_count = 0; purs_ampl = []; purs_ampl_deg = []; purs_duration = []; purs_peakvel = []; purs_medvel= []; purs_avgvel = []; purs_rawamp = []
-fixa_count = 0; fixa_ampl = []; fixa_ampl_deg = []; fixa_duration = []; fixa_peakvel = []; fixa_medvel = []; fixa_avgvel = []; fixa_rawamp = []
-
-fixa_duration_sum = 0
-
-if (len(sys.argv) != 2):
-    print("Usage: " + sys.argv[0] + " <remodnav_out_file>")
-    exit(1)
-
-with open(sys.argv[1]) as f:
-    lines = f.readlines()
+def parse_remodnav_file(filepath):
+    with open(filepath) as f:
+        lines = f.readlines()
     hdr = lines[0].split('\t')
-    event = hdr.index('label')
-    x1 = hdr.index('start_x')
-    y1 = hdr.index('start_y')
-    x2 = hdr.index('end_x')
-    y2 = hdr.index('end_y')
-    duration = hdr.index('duration')
-    peak_vel = hdr.index('peak_vel')
-    med_vel = hdr.index('med_vel')
-    amp = hdr.index('amp')
-    avg_vel = hdr.index('avg_vel\n')
+    return lines[1:], hdr
 
-    for l in lines[1:]:
+def extract_indices(hdr):
+    return {
+        'event': hdr.index('label'),
+        'x1': hdr.index('start_x'),
+        'y1': hdr.index('start_y'),
+        'x2': hdr.index('end_x'),
+        'y2': hdr.index('end_y'),
+        'duration': hdr.index('duration'),
+        'peak_vel': hdr.index('peak_vel'),
+        'med_vel': hdr.index('med_vel'),
+        'amp': hdr.index('amp'),
+        'avg_vel': hdr.index('avg_vel\n')
+    }
+
+def process_events(lines, indices):
+    K = 0.068055
+    sacc_threshold = 2 / K
+    fixa_threshold = 0.2
+
+    macro_sacc_count = 0; macro_sacc_ampl = []; macro_sacc_ampl_deg = []; macro_sacc_duration = []; macro_sacc_peakvel = []; macro_sacc_medvel = []; macro_sacc_avgvel = []; macro_sacc_rawamp = []
+    micro_sacc_count = 0; micro_sacc_ampl = []; micro_sacc_duration = []; micro_sacc_peakvel = []; micro_sacc_medvel = []; micro_sacc_avgvel = []
+    purs_count = 0; purs_ampl = []; purs_ampl_deg = []; purs_duration = []; purs_peakvel = []; purs_medvel= []; purs_avgvel = []; purs_rawamp = []
+    fixa_count = 0; fixa_ampl = []; fixa_ampl_deg = []; fixa_duration = []; fixa_peakvel = []; fixa_medvel = []; fixa_avgvel = []; fixa_rawamp = []
+    fixa_duration_sum = 0
+
+    for l in lines:
         data = l.split('\t')
-        event_type = data[event]
+        event_type = data[indices['event']]
 
         if event_type in ['SACC']:
-            dx = float(data[x1]) - float(data[x2])
-            dy = float(data[y2]) - float(data[y2])
+            dx = float(data[indices['x1']]) - float(data[indices['x2']])
+            dy = float(data[indices['y2']]) - float(data[indices['y2']])
             temp = abs(math.hypot(dx, dy))
             temp2 = temp * K
-            # sacc_count += 1
-            # sacc_ampl += temp
-            # sacc_ampl.append(temp)
 
             if temp >= sacc_threshold:
                 macro_sacc_count += 1
                 macro_sacc_ampl.append(temp)
                 macro_sacc_ampl_deg.append(temp2)
-                macro_sacc_duration.append(float(data[duration]))
-                macro_sacc_peakvel.append(float(data[peak_vel]))
-                #macro_sacc_medvel.append(float(data[med_vel]))
-                #macro_sacc_avgvel.append(float(data[avg_vel]))
-                macro_sacc_rawamp.append(float(data[amp]))
+                macro_sacc_duration.append(float(data[indices['duration']]))
+                macro_sacc_peakvel.append(float(data[indices['peak_vel']]))
+                #macro_sacc_medvel.append(float(data[indices['med_vel']]))
+                #macro_sacc_avgvel.append(float(data[indices['avg_vel']]))
+                macro_sacc_rawamp.append(float(data[indices['amp']]))
             else:
                 micro_sacc_count += 1
                 micro_sacc_ampl.append(temp)
-                micro_sacc_duration.append(float(data[duration]))
-                micro_sacc_peakvel.append(float(data[peak_vel]))
-                #micro_sacc_medvel.append(float(data[med_vel]))
-                #micro_sacc_avgvel.append(float(data[avg_vel]))
+                micro_sacc_duration.append(float(data[indices['duration']]))
+                micro_sacc_peakvel.append(float(data[indices['peak_vel']]))
+                #micro_sacc_medvel.append(float(data[indices['med_vel']]))
+                #micro_sacc_avgvel.append(float(data[indices['avg_vel']]))
 
         elif event_type in ['PURS']:
-
-            dx = float(data[x1]) - float(data[x2])
-            dy = float(data[y2]) - float(data[y2])
+            dx = float(data[indices['x1']]) - float(data[indices['x2']])
+            dy = float(data[indices['y2']]) - float(data[indices['y2']])
             temp = abs(math.hypot(dx,dy))
             temp2 = temp * K
 
             purs_count += 1
             purs_ampl.append(temp)
             purs_ampl_deg.append(temp2)
-            purs_duration.append(float(data[duration]))
-            purs_peakvel.append(float(data[peak_vel]))
-            purs_medvel.append(float(data[med_vel]))
-            purs_avgvel.append(float(data[avg_vel]))
-            purs_rawamp.append(float(data[amp]))
-
+            purs_duration.append(float(data[indices['duration']]))
+            purs_peakvel.append(float(data[indices['peak_vel']]))
+            purs_medvel.append(float(data[indices['med_vel']]))
+            purs_avgvel.append(float(data[indices['avg_vel']]))
+            purs_rawamp.append(float(data[indices['amp']]))
 
         elif event_type in ['FIXA']:
-
-            dx = float(data[x1]) - float(data[x2])
-            dy = float(data[y2]) - float(data[y2])
+            dx = float(data[indices['x1']]) - float(data[indices['x2']])
+            dy = float(data[indices['y2']]) - float(data[indices['y2']])
             temp = abs(math.hypot(dx,dy))
             temp2 = temp * 0.056250
+            temp3 = float(data[indices['duration']])
 
-            fixa_count += 1
-            fixa_ampl.append(temp)
-            fixa_ampl_deg.append(temp2)
-            fixa_duration.append(float(data[duration]))
-            fixa_peakvel.append(float(data[peak_vel]))
-            fixa_medvel.append(float(data[med_vel]))
-            fixa_avgvel.append(float(data[avg_vel]))
-            fixa_rawamp.append(float(data[amp]))
-            fixa_duration_sum += float(data[duration])
+            if temp >= fixa_threshold:
 
+                fixa_count += 1
+                fixa_ampl.append(temp)
+                fixa_ampl_deg.append(temp2)
+                fixa_duration.append(float(data[indices['duration']]))
+                fixa_peakvel.append(float(data[indices['peak_vel']]))
+                fixa_medvel.append(float(data[indices['med_vel']]))
+                fixa_avgvel.append(float(data[indices['avg_vel']]))
+                fixa_rawamp.append(float(data[indices['amp']]))
+                fixa_duration_sum += float(data[indices['duration']])
 
-    # MACROSACCADES RESULTS
-    # Calculate mean
-    # macro_sacc_ampl /= macro_sacc_count
-    mean_macro_sacc_ampl = np.mean(macro_sacc_ampl)
-    mean_macro_sacc_ampl_deg = (np.mean(macro_sacc_ampl_deg))
-    mean_macro_sacc_duration = np.mean(macro_sacc_duration)
-    mean_macro_sacc_peakvel = np.mean(macro_sacc_peakvel)
-    #mean_macro_sacc_medvel = np.mean(macro_sacc_medvel)
-    #mean_macro_sacc_avgvel = np.mean(macro_sacc_avgvel)
-    mean_macro_sacc_rawamp = np.mean(macro_sacc_rawamp)
+    return {
+        'macro_sacc_count': macro_sacc_count,
+        'macro_sacc_ampl': macro_sacc_ampl,
+        'macro_sacc_ampl_deg': macro_sacc_ampl_deg,
+        'macro_sacc_duration': macro_sacc_duration,
+        'macro_sacc_peakvel': macro_sacc_peakvel,
+        'macro_sacc_rawamp': macro_sacc_rawamp,
+        'fixa_count': fixa_count,
+        'fixa_duration': fixa_duration
+    }
 
-    # Calculate median
-    median_macro_sacc_ampl = np.median(macro_sacc_ampl)
-    median_macro_sacc_ampl_deg = np.median(macro_sacc_ampl_deg)
-    median_macro_sacc_duration = np.median(macro_sacc_duration)
-    median_macro_sacc_peakvel = np.median(macro_sacc_peakvel)
-    #median_macro_sacc_medvel = np.median(macro_sacc_medvel)
-    #median_macro_sacc_avgvel = np.median(macro_sacc_avgvel)
-    median_macro_sacc_rawampl = np.median(macro_sacc_rawamp)
+def compute_and_print_stats(data):
+    mean_macro_sacc_ampl = np.mean(data['macro_sacc_ampl'])
+    mean_macro_sacc_ampl_deg = np.mean(data['macro_sacc_ampl_deg'])
+    mean_macro_sacc_duration = np.mean(data['macro_sacc_duration'])
+    mean_macro_sacc_peakvel = np.mean(data['macro_sacc_peakvel'])
+    mean_macro_sacc_rawamp = np.mean(data['macro_sacc_rawamp'])
 
-    # Calculate standard deviation
-    sd_macro_sacc_ampl = statistics.stdev(macro_sacc_ampl)
-    sd_macro_sacc_ampl_deg = statistics.stdev(macro_sacc_ampl_deg)
-    sd_macro_sacc_duration = statistics.stdev(macro_sacc_duration)
-    sd_macro_sacc_peakvel = statistics.stdev(macro_sacc_peakvel)
-    #sd_macro_sacc_medvel = statistics.stdev(macro_sacc_medvel)
-    #sd_macro_sacc_avgvel = statistics.stdev(macro_sacc_avgvel)
-    sd_macro_sacc_rawamp = statistics.stdev(macro_sacc_rawamp)
+    median_macro_sacc_ampl = np.median(data['macro_sacc_ampl'])
+    median_macro_sacc_ampl_deg = np.median(data['macro_sacc_ampl_deg'])
+    median_macro_sacc_duration = np.median(data['macro_sacc_duration'])
+    median_macro_sacc_peakvel = np.median(data['macro_sacc_peakvel'])
+    median_macro_sacc_rawampl = np.median(data['macro_sacc_rawamp'])
 
+    sd_macro_sacc_ampl = statistics.stdev(data['macro_sacc_ampl'])
+    sd_macro_sacc_ampl_deg = statistics.stdev(data['macro_sacc_ampl_deg'])
+    sd_macro_sacc_duration = statistics.stdev(data['macro_sacc_duration'])
+    sd_macro_sacc_peakvel = statistics.stdev(data['macro_sacc_peakvel'])
+    sd_macro_sacc_rawamp = statistics.stdev(data['macro_sacc_rawamp'])
 
+    mean_fixa_duration = np.mean(data['fixa_duration'])
+    median_fixa_duration = np.median(data['fixa_duration'])
+    sd_fixa_duration = statistics.stdev(data['fixa_duration'])
 
-    # FIXATION RESULTS
-    # Calculate mean
-    mean_fixa_duration = np.mean(fixa_duration)
-
-    # Calculate median
-    median_fixa_duration = np.median(fixa_duration)
-
-    # Calculate standard deviation
-    sd_fixa_duration = statistics.stdev(fixa_duration)
-
-
-
-    print("Found: {:d} Macrosaccades (ampl: {:f} pixels (median: {:f}),(sd: {:f}) / {:f} degrees: (median: {:f}), (sd:{:f}), rawamp: {:f} (median: {:f}, (sd:{:f}); duration: {:f} (median: {:f}), (sd: {:f}); peak_vel: {:f} (median: {:f}), (sd: {:f}))".format
-        (macro_sacc_count,
+    print("Found: {:d} Macrosaccades (ampl: {:f} pixels (median: {:f}),(sd: {:f}) / {:f} degrees: (median: {:f}), (sd:{:f}), rawamp: {:f} (median: {:f}, (sd:{:f}); duration: {:f} (median: {:f}), (sd: {:f}); peak_vel: {:f} (median: {:f}), (sd: {:f}))".format(
+        data['macro_sacc_count'],
         mean_macro_sacc_ampl, median_macro_sacc_ampl, sd_macro_sacc_ampl,
         mean_macro_sacc_ampl_deg, median_macro_sacc_ampl_deg, sd_macro_sacc_ampl_deg,
         mean_macro_sacc_rawamp, median_macro_sacc_rawampl, sd_macro_sacc_rawamp,
         mean_macro_sacc_duration, median_macro_sacc_duration, sd_macro_sacc_duration,
-        mean_macro_sacc_peakvel, median_macro_sacc_peakvel, sd_macro_sacc_peakvel))
+        mean_macro_sacc_peakvel, median_macro_sacc_peakvel, sd_macro_sacc_peakvel
+    ))
 
+    print("Found: {:d} Fixations (duration: {:f} (median: {:f}), (sd: {:f}))".format(
+        data['fixa_count'],
+        mean_fixa_duration, median_fixa_duration, sd_fixa_duration
+    ))
 
-    print("Found: {:d} Fixations (duration: {:f} (median: {:f}), (sd: {:f}))".format
-       (fixa_count,
-       mean_fixa_duration, median_fixa_duration, sd_fixa_duration))
+def main():
+    if len(sys.argv) != 2:
+        print("Usage: " + sys.argv[0] + " <remodnav_out_file>")
+        exit(1)
 
+    lines, hdr = parse_remodnav_file(sys.argv[1])
+    indices = extract_indices(hdr)
+    data = process_events(lines, indices)
+    compute_and_print_stats(data)
 
-    # ########## WRITE RESULTS ON A TXT FILE ##########
-    with open("Dati.txt", "a") as f:
-        # Scrivi intestazione solo se il file è vuoto
-        if f.tell() == 0:
-            f.write("NAME\tTASK\tCONDITION\t"
-                    "Sacc_N\t"
-                    "Sacc_amp_pix_mean\tSacc_amp_pix_med\tSacc_amp_pix_sd\t"
-                    "Sacc_amp_deg_mean\tSacc_amp_deg_med\tSacc_amp_deg_sd\t"
-                    "Sacc_raw_amp_mean\tSacc_raw_amp_med\tSacc_raw_amp_sd\t"
-                    "Sacc_dur_mean\tSacc_dur_med\tSacc_dur_sd\t"
-                    "Sacc_peakvel_mean\tSacc_peakvel_med\tSacc_peakvel_sd\t"
-                    "Fixa_N\t"
-                    "Fixa_dur_mean\tFixa_dur_med\tFixa_dur_sd\n")
-
-        # Scrivi i dati
-        f.write("LO\tS1\tNV\t"
-                "{:.3f}\t"
-                "{:.3f}\t{:.3f}\t{:.3f}\t"
-                "{:.3f}\t{:.3f}\t{:.3f}\t"
-                "{:.3f}\t{:.3f}\t{:.3f}\t"
-                "{:.3f}\t{:.3f}\t{:.3f}\t"
-                "{:.3f}\t{:.3f}\t{:.3f}\t"
-                
-                "{:.3f}\t"
-                "{:.3f}\t{:.3f}\t{:.3f}\n".format(
-            macro_sacc_count,
-            mean_macro_sacc_ampl, median_macro_sacc_ampl, sd_macro_sacc_ampl,
-            mean_macro_sacc_ampl_deg, median_macro_sacc_ampl_deg, sd_macro_sacc_ampl_deg,
-            mean_macro_sacc_rawamp, median_macro_sacc_rawampl, sd_macro_sacc_rawamp,
-            mean_macro_sacc_duration, median_macro_sacc_duration, sd_macro_sacc_duration,
-            mean_macro_sacc_peakvel, median_macro_sacc_peakvel, sd_macro_sacc_peakvel,
-            fixa_count,
-            mean_fixa_duration, median_fixa_duration, sd_fixa_duration
-        ))
+if __name__ == "__main__":
+    main()
